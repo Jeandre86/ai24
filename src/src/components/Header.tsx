@@ -38,10 +38,12 @@ export function Header() {
         {/* Logo */}
         <Link
           to="/"
-          className="font-sora font-bold text-xl tracking-tight flex items-center gap-1 cursor-pointer">
-          
-          AI <span className="text-accent font-mono font-medium">{'//'}</span>{' '}
-          24
+          className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+          <img
+            src="/ai24-logo.svg"
+            alt="AI//24 Logo"
+            className="h-10 w-auto"
+          />
         </Link>
 
         {/* Desktop Nav */}
