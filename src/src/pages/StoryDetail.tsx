@@ -1,13 +1,55 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Bookmark, ExternalLink } from 'lucide-react';
-import { heroStories, feedStories } from '../data';
+
 export function StoryDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  // Find story in either array
-  const story =
-  [...heroStories, ...feedStories].find((s) => s.id === id) || heroStories[0];
+  const [story, setStory] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStory = async () => {
+      try {
+        const response = await fetch(`http://localhost:3001/api/article/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStory(data);
+        } else {
+          setStory(null);
+        }
+      } catch (error) {
+        console.error('Error fetching story:', error);
+        setStory(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStory();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="text-center text-secondary">Loading article...</div>
+      </main>
+    );
+  }
+
+  if (!story) {
+    return (
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-secondary hover:text-primary transition-colors mb-8 group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          Back
+        </button>
+        <div className="text-center text-secondary">Article not found</div>
+      </main>
+    );
+  }
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
       <button
@@ -87,9 +129,11 @@ export function StoryDetail() {
               </p>
             </div>
             <a
-              href="#"
+              href={story.url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-6 py-3 bg-primary text-base font-semibold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 whitespace-nowrap">
-              
+
               Read Original <ExternalLink className="w-4 h-4" />
             </a>
           </div>

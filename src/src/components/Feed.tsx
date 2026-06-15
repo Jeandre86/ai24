@@ -40,7 +40,7 @@ export function Feed({ stories }: FeedProps) {
   return (
     <section className="mt-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-border pb-4 gap-4">
-        <h2 className="text-xl font-sora font-bold flex items-center gap-2">
+        <h2 className="text-xl font-sora font-bold flex items-center gap-2" style={{ color: '#f5f5f5' }}>
           <div className="w-2 h-2 rounded-full bg-accent"></div>
           Latest News
         </h2>
@@ -90,7 +90,7 @@ export function Feed({ stories }: FeedProps) {
                   {story.category}
                 </span>
               </div>
-              <h3 className="text-base md:text-lg font-sora font-semibold leading-tight mb-1.5 group-hover:text-accent transition-colors">
+              <h3 className="text-base md:text-lg font-sora font-semibold leading-tight mb-1.5 text-primary group-hover:text-accent transition-colors">
                 {story.title}
               </h3>
               <p className="text-secondary text-sm line-clamp-1 mb-2">
