@@ -36,7 +36,7 @@ export function Curated() {
             x: 4
           }}
           className="group p-6 rounded-2xl border border-border bg-surface hover:border-accent transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          
+
             <div>
               <h2 className="text-xl font-sora font-semibold group-hover:text-accent transition-colors mb-2">
                 {pick.title}
@@ -46,9 +46,11 @@ export function Curated() {
                 <span className="text-primary font-medium">{pick.curator}</span>
               </p>
             </div>
-            <button className="px-4 py-2 rounded-full bg-base border border-border text-sm font-medium hover:bg-accent hover:text-white hover:border-accent transition-colors shrink-0">
+            <a
+              href={`#${pick.id}`}
+              className="px-4 py-2 rounded-full bg-base border border-border text-sm font-medium hover:bg-accent hover:text-white hover:border-accent transition-colors shrink-0 text-center">
               View Resource
-            </button>
+            </a>
           </motion.div>
         )}
       </div>

@@ -39,6 +39,35 @@ db.exec(`
 app.use(cors());
 app.use(express.json());
 
+// Pool of diverse article images
+const articleImages = [
+  'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400', // AI/tech
+  'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=400', // Digital/AI
+  'https://images.unsplash.com/photo-1686191128892-3b37013f14ed?auto=format&fit=crop&q=80&w=400', // Creative/AI
+  'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=400', // Computing
+  'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400', // Hardware
+  'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&q=80&w=400', // Innovation
+  'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=400', // Tech
+  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=400', // Business
+  'https://images.unsplash.com/photo-1460925895917-adf4e565e6b1?auto=format&fit=crop&q=80&w=400', // Analytics
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Meeting
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Team
+  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=400', // Laptop
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Tech team
+  'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=400', // Code
+  'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=400', // Startup
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Office
+  'https://images.unsplash.com/photo-1489749798305-4fea3ba63d60?auto=format&fit=crop&q=80&w=400', // Startup pitch
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', // Workspace
+  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=400', // Entrepreneur
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400'  // Tech meeting
+];
+
+// Get random image from pool
+function getRandomImage(index) {
+  return articleImages[index % articleImages.length];
+}
+
 // Function to fetch AI news from NewsAPI
 async function fetchAINews() {
   try {
@@ -139,11 +168,14 @@ async function fetchFromHackerNews() {
       timeout: 10000
     });
 
-    const storyIds = topStoriesRes.data.slice(0, 100);
+    // Get top stories for maximum coverage
+    const storyIds = topStoriesRes.data.slice(0, 150); // Fetch top 150 stories
     const articles = [];
 
+    console.log(`Checking ${storyIds.length} stories for relevance...`);
+
     // Fetch individual stories
-    for (let i = 0; i < storyIds.length && articles.length < 50; i++) {
+    for (let i = 0; i < storyIds.length && articles.length < 100; i++) { // Get up to 100 articles
       try {
         const storyRes = await axios.get(`https://hacker-news.firebaseio.com/v0/item/${storyIds[i]}.json`, {
           timeout: 5000
@@ -153,25 +185,53 @@ async function fetchFromHackerNews() {
 
         // Only include stories with URLs (skip text posts)
         if (story && story.url && story.title && story.by) {
-          // Filter for AI-related stories
           const titleLower = story.title.toLowerCase();
-          const isAIRelated = titleLower.includes('ai') || titleLower.includes('artificial') ||
-                             titleLower.includes('machine') || titleLower.includes('learning') ||
-                             titleLower.includes('gpt') || titleLower.includes('claude') ||
-                             titleLower.includes('model') || titleLower.includes('neural') ||
-                             titleLower.includes('deep') || titleLower.includes('llm') ||
-                             titleLower.includes('algorithm') || titleLower.includes('data');
 
-          if (isAIRelated) {
+          // Expanded keywords for broader tech/AI/business news coverage
+          const isRelevant =
+            // AI/ML keywords
+            titleLower.includes('ai') || titleLower.includes('artificial') ||
+            titleLower.includes('machine') || titleLower.includes('learning') ||
+            titleLower.includes('gpt') || titleLower.includes('claude') ||
+            titleLower.includes('model') || titleLower.includes('neural') ||
+            titleLower.includes('deep') || titleLower.includes('llm') ||
+            titleLower.includes('algorithm') || titleLower.includes('data') ||
+            titleLower.includes('automation') || titleLower.includes('robot') ||
+            // Business leaders & companies
+            titleLower.includes('bezos') || titleLower.includes('musk') ||
+            titleLower.includes('jobs') || titleLower.includes('gates') ||
+            titleLower.includes('amazon') || titleLower.includes('google') ||
+            titleLower.includes('microsoft') || titleLower.includes('apple') ||
+            titleLower.includes('meta') || titleLower.includes('tesla') ||
+            titleLower.includes('openai') || titleLower.includes('anthropic') ||
+            titleLower.includes('stable') || titleLower.includes('midjourney') ||
+            // Tech trends
+            titleLower.includes('blockchain') || titleLower.includes('crypto') ||
+            titleLower.includes('quantum') || titleLower.includes('chip') ||
+            titleLower.includes('gpu') || titleLower.includes('nvidia') ||
+            titleLower.includes('software') || titleLower.includes('startup') ||
+            titleLower.includes('tech') || titleLower.includes('innovation') ||
+            titleLower.includes('programming') || titleLower.includes('code') ||
+            titleLower.includes('developer') || titleLower.includes('engineering') ||
+            // Investment & funding
+            titleLower.includes('funding') || titleLower.includes('investment') ||
+            titleLower.includes('venture') || titleLower.includes('billion') ||
+            titleLower.includes('acquisition') || titleLower.includes('ipo') ||
+            // Research & breakthroughs
+            titleLower.includes('research') || titleLower.includes('breakthrough') ||
+            titleLower.includes('discovery') || titleLower.includes('study') ||
+            titleLower.includes('paper') || titleLower.includes('science');
+
+          if (isRelevant) {
             articles.push({
               id: `hn_${story.id}`,
               title: story.title,
-              dek: `${story.score || 0} points, ${story.descendants || 0} comments on Hacker News`,
+              dek: 'Latest news from ' + extractDomain(story.url),
               category: categorizeArticle(story.title),
               source: extractDomain(story.url),
               readTime: `${Math.ceil(Math.random() * 10) + 2} min read`,
               time: formatTime(new Date(story.time * 1000)),
-              image: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400',
+              image: getRandomImage(articles.length),
               url: story.url,
               published_at: new Date(story.time * 1000).toISOString()
             });
@@ -183,10 +243,43 @@ async function fetchFromHackerNews() {
     }
 
     if (articles.length === 0) {
-      throw new Error('No AI articles found');
+      throw new Error('No relevant articles found');
     }
 
-    console.log(`Found ${articles.length} AI articles from Hacker News`);
+    // Insert all articles into database
+    try {
+      const stmt = db.prepare(`
+        INSERT OR IGNORE INTO articles
+        (id, title, dek, category, source, readTime, time, image, url, published_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      let insertedCount = 0;
+      for (const article of articles) {
+        try {
+          stmt.run(
+            article.id,
+            article.title,
+            article.dek,
+            article.category,
+            article.source,
+            article.readTime,
+            article.time,
+            article.image,
+            article.url,
+            article.published_at
+          );
+          insertedCount++;
+        } catch (e) {
+          // Skip duplicates silently
+        }
+      }
+      console.log(`Inserted ${insertedCount} articles into database from Hacker News`);
+    } catch (dbError) {
+      console.error('Database insertion error:', dbError.message);
+    }
+
+    console.log(`Found ${articles.length} relevant articles from Hacker News`);
     return articles;
   } catch (error) {
     console.error('Hacker News fetch error:', error.message);
@@ -209,11 +302,46 @@ function extractDomain(url) {
 // Categorize articles based on keywords
 function categorizeArticle(text) {
   const lowerText = text.toLowerCase();
-  if (lowerText.includes('model') || lowerText.includes('gpt') || lowerText.includes('claude')) return 'AI Models';
-  if (lowerText.includes('chip') || lowerText.includes('nvidia') || lowerText.includes('gpu')) return 'Hardware';
-  if (lowerText.includes('regulation') || lowerText.includes('policy') || lowerText.includes('law')) return 'Policy';
-  if (lowerText.includes('image') || lowerText.includes('generation') || lowerText.includes('midjourney')) return 'Generative Art';
-  if (lowerText.includes('business') || lowerText.includes('deal') || lowerText.includes('partnership')) return 'Business';
+
+  // AI Models
+  if (lowerText.includes('model') || lowerText.includes('gpt') || lowerText.includes('claude') ||
+      lowerText.includes('llm') || lowerText.includes('neural') || lowerText.includes('algorithm')) {
+    return 'AI Models';
+  }
+
+  // Hardware & Infrastructure
+  if (lowerText.includes('chip') || lowerText.includes('nvidia') || lowerText.includes('gpu') ||
+      lowerText.includes('gpu') || lowerText.includes('quantum') || lowerText.includes('processor')) {
+    return 'Hardware';
+  }
+
+  // Business & Investment
+  if (lowerText.includes('bezos') || lowerText.includes('musk') || lowerText.includes('funding') ||
+      lowerText.includes('investment') || lowerText.includes('venture') || lowerText.includes('billion') ||
+      lowerText.includes('acquisition') || lowerText.includes('startup') || lowerText.includes('ipo') ||
+      lowerText.includes('business') || lowerText.includes('deal') || lowerText.includes('partnership')) {
+    return 'Business';
+  }
+
+  // Generative Art & Creative AI
+  if (lowerText.includes('image') || lowerText.includes('generation') || lowerText.includes('midjourney') ||
+      lowerText.includes('stable') || lowerText.includes('creative') || lowerText.includes('art')) {
+    return 'Generative Art';
+  }
+
+  // Policy & Regulation
+  if (lowerText.includes('regulation') || lowerText.includes('policy') || lowerText.includes('law') ||
+      lowerText.includes('act') || lowerText.includes('compliance') || lowerText.includes('ethics')) {
+    return 'Policy';
+  }
+
+  // Research & Science
+  if (lowerText.includes('research') || lowerText.includes('breakthrough') || lowerText.includes('discovery') ||
+      lowerText.includes('study') || lowerText.includes('paper') || lowerText.includes('science')) {
+    return 'Research';
+  }
+
+  // General updates
   return 'Updates';
 }
 
@@ -243,7 +371,7 @@ function getMockArticles() {
       source: 'OpenAI',
       readTime: '5 min read',
       time: '2h ago',
-      image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1600',
+      image: articleImages[0],
       url: 'https://openai.com/research/gpt-4',
       published_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
     },
@@ -255,7 +383,7 @@ function getMockArticles() {
       source: 'Google',
       readTime: '8 min read',
       time: '5h ago',
-      image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400',
+      image: articleImages[1],
       url: 'https://developers.google.com/machine-learning/intro-to-ml',
       published_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
     },
@@ -267,7 +395,7 @@ function getMockArticles() {
       source: 'Meta',
       readTime: '6 min read',
       time: '6h ago',
-      image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=800',
+      image: articleImages[2],
       url: 'https://research.facebook.com/publications/llama-open-and-efficient-foundation-language-models/',
       published_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
     },
@@ -279,7 +407,7 @@ function getMockArticles() {
       source: 'Stability AI',
       readTime: '5 min read',
       time: '4h ago',
-      image: 'https://images.unsplash.com/photo-1686191128892-3b37013f14ed?auto=format&fit=crop&q=80&w=800',
+      image: articleImages[3],
       url: 'https://stability.ai/news/stable-diffusion-3',
       published_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
     },
@@ -291,7 +419,7 @@ function getMockArticles() {
       source: 'Anthropic',
       readTime: '6 min read',
       time: '3h ago',
-      image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&q=80&w=400',
+      image: articleImages[4],
       url: 'https://www.anthropic.com/claude',
       published_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
     },
@@ -303,7 +431,7 @@ function getMockArticles() {
       source: 'Wikipedia',
       readTime: '15 min read',
       time: '14h ago',
-      image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=400',
+      image: articleImages[5],
       url: 'https://en.wikipedia.org/wiki/Artificial_intelligence',
       published_at: new Date(Date.now() - 14 * 60 * 60 * 1000).toISOString()
     }
@@ -388,6 +516,54 @@ app.get('/api/article/:id', (req, res) => {
   } catch (error) {
     console.error('Error fetching article:', error);
     res.status(500).json({ error: 'Error fetching article' });
+  }
+});
+
+// Get categories with counts
+app.get('/api/categories', (req, res) => {
+  try {
+    const categories = db.prepare(`
+      SELECT category, COUNT(*) as count
+      FROM articles
+      GROUP BY category
+      ORDER BY count DESC
+    `).all();
+
+    res.json(categories || []);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Error fetching categories' });
+  }
+});
+
+// Get articles by category
+app.get('/api/category/:category', (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 24;
+    const offset = (page - 1) * limit;
+    const category = req.params.category;
+
+    const articles = db.prepare(`
+      SELECT * FROM articles
+      WHERE category = ?
+      ORDER BY published_at DESC
+      LIMIT ? OFFSET ?
+    `).all(category, limit, offset);
+
+    const total = db.prepare('SELECT COUNT(*) as count FROM articles WHERE category = ?').get(category);
+
+    res.json({
+      articles: articles || [],
+      total: total.count,
+      category,
+      page,
+      limit,
+      pages: Math.ceil(total.count / limit)
+    });
+  } catch (error) {
+    console.error('Error fetching category articles:', error);
+    res.status(500).json({ error: 'Error fetching category articles' });
   }
 });
 

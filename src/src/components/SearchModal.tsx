@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, CornerDownLeft } from 'lucide-react';
-import { heroStories, feedStories } from '../data';
+
 interface SearchResult {
   id: string;
   title: string;
@@ -14,20 +14,36 @@ interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-const allStories: SearchResult[] = [...heroStories, ...feedStories].map(
-  (s) => ({
-    id: s.id,
-    title: s.title,
-    category: s.category,
-    source: s.source,
-    image: s.image
-  })
-);
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [allStories, setAllStories] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch all articles from API on mount
+  useEffect(() => {
+    const fetchAllArticles = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/explore?limit=100');
+        const data = await response.json();
+        const articles = (data.articles || []).map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          category: a.category,
+          source: a.source,
+          image: a.image
+        }));
+        setAllStories(articles);
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+      }
+    };
+
+    fetchAllArticles();
+  }, []);
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return allStories.slice(0, 6);
@@ -37,17 +53,18 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       s.category.toLowerCase().includes(q) ||
       s.source.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, allStories]);
+
   // Reset state + focus when opened
   useEffect(() => {
     if (isOpen) {
       setQuery('');
       setActiveIndex(0);
-      // focus after the modal mounts
       const t = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
   }, [isOpen]);
+
   // Keep active index in range
   useEffect(() => {
     setActiveIndex(0);
