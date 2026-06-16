@@ -1,5 +1,5 @@
-import React from 'react';
-import { TrendingUp, BookOpen, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, BookOpen, Star, Image as ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 interface TrendingItem {
   id: string;
@@ -23,8 +23,30 @@ interface SidebarProps {
   curationPicks: CurationItem[];
 }
 import { useNavigate } from 'react-router-dom';
+import { getFallbackImage, DEFAULT_IMAGE } from '../utils/imageHandler';
+
 export function Sidebar({ trending, deepDives, curationPicks }: SidebarProps) {
   const navigate = useNavigate();
+  const [brokenImages, setBrokenImages] = useState<Map<string, string>>(new Map());
+
+  const handleImageError = (originalUrl: string, index: number) => {
+    // Map broken image URL to its fallback
+    setBrokenImages(prev => {
+      const updated = new Map(prev);
+      updated.set(originalUrl, getFallbackImage(index));
+      return updated;
+    });
+  };
+
+  const getImageUrl = (url: string | undefined, index: number = 0): string => {
+    if (!url) return DEFAULT_IMAGE;
+    // If this image URL is broken, use fallback
+    if (brokenImages.has(url)) {
+      return brokenImages.get(url) || DEFAULT_IMAGE;
+    }
+    // Otherwise use article's own image
+    return url;
+  };
   return (
     <div className="sticky top-24 flex flex-col gap-10">
       {/* Trending Now */}
@@ -39,7 +61,7 @@ export function Sidebar({ trending, deepDives, curationPicks }: SidebarProps) {
             onClick={() => navigate(`/story/${item.id}`)}
             className="flex gap-4 group cursor-pointer">
             
-              <span className="text-2xl font-sora font-bold text-border group-hover:text-accent transition-colors">
+              <span className="text-2xl font-sora font-bold text-primary group-hover:text-accent transition-colors">
                 0{i + 1}
               </span>
               <div className="flex flex-col pt-1">
@@ -71,9 +93,11 @@ export function Sidebar({ trending, deepDives, curationPicks }: SidebarProps) {
             className="group flex gap-3 p-2 -mx-2 rounded-lg hover:bg-surface transition-colors cursor-pointer">
             
               <img
-              src={item.image}
+              src={getImageUrl(item.image)}
               alt={item.title}
-              className="w-16 h-16 rounded-md object-cover shrink-0 bg-border" />
+              onError={() => handleImageError(item.image, deepDives.indexOf(item))}
+              className="w-16 h-16 rounded-md object-cover shrink-0 bg-secondary/30"
+              loading="lazy" />
             
               <div className="flex flex-col justify-center">
                 <h4 className="text-sm font-semibold leading-snug group-hover:text-accent transition-colors line-clamp-2">

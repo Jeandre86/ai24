@@ -1,5 +1,8 @@
-import React, { Children } from 'react';
+import React, { Children, useState } from 'react';
 import { motion } from 'framer-motion';
+import { MoreVertical } from 'lucide-react';
+import { DEFAULT_IMAGE, getFallbackImage } from '../utils/imageHandler';
+
 interface FeedStory {
   id: string;
   title: string;
@@ -35,8 +38,40 @@ const item = {
   }
 };
 import { useNavigate } from 'react-router-dom';
-export function Feed({ stories }: FeedProps) {
+export function Feed({ stories: initialStories }: FeedProps) {
   const navigate = useNavigate();
+  const [stories, setStories] = useState(initialStories);
+  const [hiddenIds, setHiddenIds] = useState(new Set<string>());
+  const [brokenImages, setBrokenImages] = useState<Map<string, string>>(new Map());
+
+  const handleImageError = (originalUrl: string, index: number) => {
+    setBrokenImages(prev => {
+      const updated = new Map(prev);
+      updated.set(originalUrl, getFallbackImage(index));
+      return updated;
+    });
+  };
+
+  const getImageUrl = (url: string | undefined): string => {
+    if (!url) return DEFAULT_IMAGE;
+    if (brokenImages.has(url)) {
+      return brokenImages.get(url) || DEFAULT_IMAGE;
+    }
+    return url;
+  };
+
+  const handleHide = async (e: React.MouseEvent, storyId: string) => {
+    e.stopPropagation();
+    try {
+      await fetch(`http://localhost:3001/api/article/${storyId}/hide`, {
+        method: 'PUT'
+      });
+      setHiddenIds(new Set(hiddenIds).add(storyId));
+      setStories(stories.filter(s => s.id !== storyId));
+    } catch (error) {
+      console.error('Error hiding article:', error);
+    }
+  };
   return (
     <section className="mt-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-border pb-4 gap-4">
@@ -75,14 +110,16 @@ export function Feed({ stories }: FeedProps) {
             backgroundColor: '#1a1a1a'
           }}
           onClick={() => navigate(`/story/${story.id}`)}
-          className="group flex flex-col sm:flex-row gap-4 p-3 -mx-3 rounded-xl border border-transparent hover:border-border transition-all cursor-pointer">
+          className="group flex flex-col sm:flex-row gap-4 p-3 -mx-3 rounded-xl border border-transparent hover:border-border transition-all cursor-pointer relative">
           
-            <div className="w-full sm:w-36 h-48 sm:h-28 shrink-0 overflow-hidden rounded-lg bg-surface">
+            <div className="w-full sm:w-36 h-48 sm:h-28 shrink-0 overflow-hidden rounded-lg bg-secondary/30">
               <img
-              src={story.image}
+              src={getImageUrl(story.image)}
               alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-            
+              onError={() => handleImageError(story.image, stories.indexOf(story))}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy" />
+
             </div>
             <div className="flex flex-col justify-center flex-1 py-1">
               <div className="flex items-center gap-2 mb-1.5">
@@ -104,6 +141,13 @@ export function Feed({ stories }: FeedProps) {
                 <span>{story.time}</span>
               </div>
             </div>
+            <button
+              onClick={(e) => handleHide(e, story.id)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-2 rounded hover:bg-secondary/30"
+              title="Hide this article"
+            >
+              <MoreVertical className="w-4 h-4 text-secondary hover:text-primary" />
+            </button>
           </motion.div>
         )}
       </motion.div>

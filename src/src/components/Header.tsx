@@ -24,12 +24,20 @@ export function Header() {
     path: '/explore'
   },
   {
-    name: 'Curated',
-    path: '/curated'
+    name: 'AI//24 Picks',
+    path: '/picks'
+  },
+  {
+    name: 'Community',
+    path: '/community'
   },
   {
     name: 'Categories',
     path: '/categories'
+  },
+  {
+    name: 'Preferences',
+    path: '/preferences'
   }];
 
   return (

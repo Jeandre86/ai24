@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { DEFAULT_IMAGE, getFallbackImage } from '../utils/imageHandler';
 interface Story {
   id: string;
   title: string;
@@ -13,8 +14,26 @@ interface HeroProps {
   subStories: Story[];
 }
 import { useNavigate } from 'react-router-dom';
+
 export function Hero({ mainStory, subStories }: HeroProps) {
   const navigate = useNavigate();
+  const [brokenImages, setBrokenImages] = useState<Map<string, string>>(new Map());
+
+  const handleImageError = (originalUrl: string, index: number) => {
+    setBrokenImages(prev => {
+      const updated = new Map(prev);
+      updated.set(originalUrl, getFallbackImage(index));
+      return updated;
+    });
+  };
+
+  const getImageUrl = (url: string | undefined): string => {
+    if (!url) return DEFAULT_IMAGE;
+    if (brokenImages.has(url)) {
+      return brokenImages.get(url) || DEFAULT_IMAGE;
+    }
+    return url;
+  };
   return (
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-4">
       {/* Main Story */}
@@ -25,12 +44,14 @@ export function Hero({ mainStory, subStories }: HeroProps) {
         onClick={() => navigate(`/story/${mainStory.id}`)}
         className="lg:col-span-8 group relative rounded-2xl border border-border bg-surface overflow-hidden transition-colors hover:border-accent hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] cursor-pointer min-h-[400px] flex flex-col justify-end p-6 md:p-8">
         
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-secondary/30">
           <img
-            src={mainStory.image}
+            src={getImageUrl(mainStory.image)}
             alt={mainStory.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-          
+            onError={() => handleImageError(mainStory.image, 0)}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="lazy" />
+
           <div className="absolute inset-0 bg-gradient-to-t from-base via-base/60 to-transparent"></div>
         </div>
         <div className="relative z-10 max-w-2xl">
@@ -70,12 +91,14 @@ export function Hero({ mainStory, subStories }: HeroProps) {
           onClick={() => navigate(`/story/${story.id}`)}
           className="flex-1 group relative rounded-2xl border border-border bg-surface overflow-hidden transition-colors hover:border-accent hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] cursor-pointer p-5 md:p-6 flex flex-col justify-end min-h-[200px]">
           
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-secondary/30">
               <img
-              src={story.image}
+              src={getImageUrl(story.image)}
               alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-            
+              onError={() => handleImageError(story.image, index + 1)}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              loading="lazy" />
+
               <div className="absolute inset-0 bg-gradient-to-t from-base via-base/80 to-base/20"></div>
             </div>
             <div className="relative z-10">

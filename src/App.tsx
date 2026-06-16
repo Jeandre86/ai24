@@ -7,6 +7,9 @@ import { Explore } from './src/pages/Explore';
 import { Curated } from './src/pages/Curated';
 import { Categories } from './src/pages/Categories';
 import { StoryDetail } from './src/pages/StoryDetail';
+import { Picks } from './src/pages/Picks';
+import { Community } from './src/pages/Community';
+import { Preferences } from './src/pages/Preferences';
 export function App() {
   return (
     <BrowserRouter>
@@ -18,6 +21,9 @@ export function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/curated" element={<Curated />} />
           <Route path="/categories" element={<Categories />} />
+          <Route path="/picks" element={<Picks />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/preferences" element={<Preferences />} />
           <Route path="/story/:id" element={<StoryDetail />} />
         </Routes>
 

@@ -2,33 +2,62 @@ import React, { useState, useEffect } from 'react';
 import { Hero } from '../components/Hero';
 import { Feed } from '../components/Feed';
 import { Sidebar } from '../components/Sidebar';
-import {
-  trending,
-  deepDives,
-  curationPicks } from
-'../data';
 
 export function Home() {
   const [heroStories, setHeroStories] = useState([]);
   const [feedStories, setFeedStories] = useState([]);
+  const [trendingStories, setTrendingStories] = useState([]);
+  const [deepDives, setDeepDives] = useState([]);
+  const [curationPicks, setCurationPicks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStories = async () => {
       try {
-        const [featuredRes, feedRes] = await Promise.all([
+        const [featuredRes, feedRes, exploreRes, picksRes] = await Promise.all([
           fetch('http://localhost:3001/api/featured'),
-          fetch('http://localhost:3001/api/feed')
+          fetch('http://localhost:3001/api/feed'),
+          fetch('http://localhost:3001/api/explore?limit=12'),
+          fetch('http://localhost:3001/api/picks')
         ]);
 
         const featured = await featuredRes.json();
         const feed = await feedRes.json();
+        const explore = await exploreRes.json();
+        const picks = await picksRes.json();
 
         setHeroStories(featured);
         setFeedStories(feed);
+
+        // Trending Now: Top 5 most recent articles from explore
+        const trendingData = explore.articles?.slice(0, 5).map(article => ({
+          id: article.id,
+          title: article.title,
+          source: article.source
+        })) || [];
+        setTrendingStories(trendingData);
+
+        // Weekly Deep Dives: 4 articles with high read time
+        const deepDiveData = explore.articles?.slice(5, 9).map(article => ({
+          id: article.id,
+          title: article.title,
+          readTime: article.readTime,
+          image: article.image
+        })) || [];
+        setDeepDives(deepDiveData);
+
+        // Curation Picks: Use AI//24 Picks data
+        const curationData = picks.slice(0, 3).map(article => ({
+          id: article.id,
+          title: article.title,
+          curator: 'AI//24 Team'
+        })) || [];
+        setCurationPicks(curationData);
       } catch (error) {
         console.error('Error fetching stories:', error);
-        // Fallback to mock data if API is not available
+        setTrendingStories(trending);
+        setDeepDives(deepDives);
+        setCurationPicks(curationPicks);
       } finally {
         setLoading(false);
       }
@@ -56,7 +85,7 @@ export function Home() {
       {/* Sidebar Column */}
       <aside className="w-full lg:w-[320px] shrink-0">
         <Sidebar
-          trending={trending}
+          trending={trendingStories}
           deepDives={deepDives}
           curationPicks={curationPicks} />
 

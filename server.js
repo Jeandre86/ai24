@@ -32,7 +32,43 @@ db.exec(`
     url TEXT,
     published_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    is_featured BOOLEAN DEFAULT 0
+    is_featured BOOLEAN DEFAULT 0,
+    is_pick BOOLEAN DEFAULT 0,
+    is_hidden BOOLEAN DEFAULT 0,
+    source_enabled BOOLEAN DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS community_uploads (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    dek TEXT,
+    category TEXT,
+    uploader_name TEXT,
+    readTime TEXT,
+    image TEXT,
+    url TEXT,
+    published_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    upvotes INTEGER DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS news_sources (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    icon_url TEXT,
+    enabled BOOLEAN DEFAULT 1,
+    boost_level INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS user_preferences (
+    id TEXT PRIMARY KEY,
+    source_id TEXT,
+    enabled BOOLEAN DEFAULT 1,
+    shortcut_enabled BOOLEAN DEFAULT 0,
+    boost_level INTEGER DEFAULT 0,
+    FOREIGN KEY(source_id) REFERENCES news_sources(id)
   );
 `);
 
@@ -578,6 +614,165 @@ app.post('/api/fetch-news', async (req, res) => {
   }
 });
 
+// AI//24 Picks - Curated articles
+app.get('/api/picks', (req, res) => {
+  try {
+    const picks = db.prepare(`
+      SELECT * FROM articles
+      WHERE is_pick = 1 AND is_hidden = 0
+      ORDER BY published_at DESC
+      LIMIT 10
+    `).all();
+    res.json(picks || []);
+  } catch (error) {
+    console.error('Error fetching picks:', error);
+    res.status(500).json({ error: 'Error fetching picks' });
+  }
+});
+
+// Community Uploads
+app.get('/api/community', (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const offset = (page - 1) * limit;
+
+    const uploads = db.prepare(`
+      SELECT * FROM community_uploads
+      ORDER BY upvotes DESC, published_at DESC
+      LIMIT ? OFFSET ?
+    `).all(limit, offset);
+
+    const total = db.prepare('SELECT COUNT(*) as count FROM community_uploads').get();
+
+    res.json({
+      uploads: uploads || [],
+      total: total.count,
+      page,
+      limit,
+      pages: Math.ceil(total.count / limit)
+    });
+  } catch (error) {
+    console.error('Error fetching community uploads:', error);
+    res.status(500).json({ error: 'Error fetching community uploads' });
+  }
+});
+
+// Submit community upload
+app.post('/api/community/upload', (req, res) => {
+  try {
+    const { title, dek, category, uploader_name, readTime, image, url } = req.body;
+    const id = `community_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    db.prepare(`
+      INSERT INTO community_uploads
+      (id, title, dek, category, uploader_name, readTime, image, url, published_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      title,
+      dek,
+      category,
+      uploader_name,
+      readTime,
+      image,
+      url,
+      new Date().toISOString()
+    );
+
+    res.json({ success: true, id });
+  } catch (error) {
+    console.error('Error uploading community content:', error);
+    res.status(500).json({ error: 'Error uploading content' });
+  }
+});
+
+// News sources - Get all available sources
+app.get('/api/sources', (req, res) => {
+  try {
+    const sources = db.prepare('SELECT * FROM news_sources ORDER BY name').all();
+    res.json(sources || []);
+  } catch (error) {
+    console.error('Error fetching sources:', error);
+    res.status(500).json({ error: 'Error fetching sources' });
+  }
+});
+
+// User preferences - Get user's source preferences
+app.get('/api/preferences', (req, res) => {
+  try {
+    const prefs = db.prepare(`
+      SELECT
+        ns.id, ns.name, ns.description, ns.icon_url,
+        COALESCE(up.enabled, 1) as enabled,
+        COALESCE(up.shortcut_enabled, 0) as shortcut_enabled,
+        COALESCE(up.boost_level, 0) as boost_level
+      FROM news_sources ns
+      LEFT JOIN user_preferences up ON ns.id = up.source_id
+      ORDER BY ns.name
+    `).all();
+    res.json(prefs || []);
+  } catch (error) {
+    console.error('Error fetching preferences:', error);
+    res.status(500).json({ error: 'Error fetching preferences' });
+  }
+});
+
+// Update source preference
+app.put('/api/preferences/:sourceId', (req, res) => {
+  try {
+    const { sourceId } = req.params;
+    const { enabled, shortcut_enabled, boost_level } = req.body;
+
+    const existing = db.prepare('SELECT id FROM user_preferences WHERE source_id = ?').get(sourceId);
+
+    if (existing) {
+      db.prepare(`
+        UPDATE user_preferences
+        SET enabled = ?, shortcut_enabled = ?, boost_level = ?
+        WHERE source_id = ?
+      `).run(enabled ? 1 : 0, shortcut_enabled ? 1 : 0, boost_level || 0, sourceId);
+    } else {
+      const prefId = `pref_${sourceId}_${Date.now()}`;
+      db.prepare(`
+        INSERT INTO user_preferences
+        (id, source_id, enabled, shortcut_enabled, boost_level)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(prefId, sourceId, enabled ? 1 : 0, shortcut_enabled ? 1 : 0, boost_level || 0);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating preference:', error);
+    res.status(500).json({ error: 'Error updating preference' });
+  }
+});
+
+// Hide article
+app.put('/api/article/:id/hide', (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('UPDATE articles SET is_hidden = 1 WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error hiding article:', error);
+    res.status(500).json({ error: 'Error hiding article' });
+  }
+});
+
+// Upvote community upload
+app.post('/api/community/:id/upvote', (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('UPDATE community_uploads SET upvotes = upvotes + 1 WHERE id = ?').run(id);
+    const updated = db.prepare('SELECT upvotes FROM community_uploads WHERE id = ?').get(id);
+    res.json({ success: true, upvotes: updated.upvotes });
+  } catch (error) {
+    console.error('Error upvoting:', error);
+    res.status(500).json({ error: 'Error upvoting' });
+  }
+});
+
 // Schedule news fetching every 24 hours
 cron.schedule('0 0 * * *', async () => {
   console.log('Running scheduled news fetch at', new Date().toISOString());
@@ -613,6 +808,48 @@ async function initializeDatabase() {
       }
       console.log(`Inserted ${mockArticles.length} initial articles`);
     }
+
+    // Initialize news sources
+    const sourcesCount = db.prepare('SELECT COUNT(*) as count FROM news_sources').get();
+    if (sourcesCount.count === 0) {
+      console.log('Initializing default news sources...');
+      const defaultSources = [
+        { id: 'hacker-news', name: 'Hacker News', description: 'Tech & startup news', enabled: 1 },
+        { id: 'techcrunch', name: 'TechCrunch', description: 'Technology trends', enabled: 1 },
+        { id: 'arxiv', name: 'arXiv', description: 'AI & ML research papers', enabled: 1 },
+        { id: 'medium', name: 'Medium', description: 'Tech & AI articles', enabled: 1 },
+        { id: 'twitter-x', name: 'Twitter/X', description: 'Real-time tech news', enabled: 1 },
+        { id: 'github-trending', name: 'GitHub Trending', description: 'Popular open-source projects', enabled: 1 },
+        { id: 'news-api', name: 'News API', description: 'General AI & tech news', enabled: 1 },
+        { id: 'vaibhav-sisinty', name: 'Vaibhav Sisinty (YouTube)', description: 'AI & tech insights from Vaibhav Sisinty YouTube channel', enabled: 1 },
+        { id: 'staying-ahead-ai', name: 'Staying Ahead AI', description: 'Premium AI insights & analysis from stayingahead.ai', enabled: 1 }
+      ];
+
+      const stmt = db.prepare(`
+        INSERT OR IGNORE INTO news_sources
+        (id, name, description, enabled)
+        VALUES (?, ?, ?, ?)
+      `);
+
+      for (const source of defaultSources) {
+        stmt.run(source.id, source.name, source.description, source.enabled);
+      }
+      console.log(`Initialized ${defaultSources.length} news sources`);
+    }
+
+    // Mark top 5 articles as AI//24 Picks if none exist
+    const picksCount = db.prepare('SELECT COUNT(*) as count FROM articles WHERE is_pick = 1').get();
+    if (picksCount.count === 0) {
+      console.log('Creating AI//24 Picks from top articles...');
+      db.prepare(`
+        UPDATE articles SET is_pick = 1
+        WHERE id IN (
+          SELECT id FROM articles
+          ORDER BY published_at DESC
+          LIMIT 5
+        )
+      `).run();
+    }
   } catch (error) {
     console.error('Error initializing database:', error.message);
   }
@@ -621,8 +858,14 @@ async function initializeDatabase() {
 console.log('Initializing database...');
 await initializeDatabase();
 
-console.log('Fetching fresh articles...');
-await fetchAINews();
+// Only fetch fresh articles if we don't have many
+const articleCount = db.prepare('SELECT COUNT(*) as count FROM articles').get();
+if (articleCount.count < 10) {
+  console.log('Fetching fresh articles...');
+  await fetchAINews();
+} else {
+  console.log(`Database already has ${articleCount.count} articles, skipping fetch`);
+}
 
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
