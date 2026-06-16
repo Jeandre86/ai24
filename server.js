@@ -79,7 +79,7 @@ app.use(express.json());
 const articleImages = [
   'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=400', // AI/tech
   'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=400', // Digital/AI
-  'https://images.unsplash.com/photo-1686191128892-3b37013f14ed?auto=format&fit=crop&q=80&w=400', // Creative/AI
+  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=400', // Creative/AI
   'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=400', // Computing
   'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400', // Hardware
   'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&q=80&w=400', // Innovation
