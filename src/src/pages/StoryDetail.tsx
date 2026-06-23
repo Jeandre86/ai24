@@ -106,35 +106,39 @@ export function StoryDetail() {
             {story.dek ||
             "This is a placeholder for the article's main content. In a real application, this would contain the full text of the news story, fetched from a backend API or CMS."}
           </p>
-          <p className="mb-6">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-            eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-            ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-            aliquip ex ea commodo consequat.
-          </p>
-          <p className="mb-6">
-            Duis aute irure dolor in reprehenderit in voluptate velit esse
-            cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
-            cupidatat non proident, sunt in culpa qui officia deserunt mollit
-            anim id est laborum.
-          </p>
 
-          <div className="mt-12 p-6 bg-surface border border-border rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Display article content paragraphs */}
+          {/* @ts-ignore */}
+          {story.content && Array.isArray(story.content) ? (
+            story.content.map((paragraph, idx) => (
+              <p key={idx} className="mb-6 leading-relaxed">
+                {paragraph}
+              </p>
+            ))
+          ) : (
+            <>
+              <p className="mb-6">
+                This article's full content is available on the original publisher's site.
+                Click the button below to read the complete story.
+              </p>
+            </>
+          )}
+
+          <div className="mt-12 p-6 bg-accent/10 border border-accent/30 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <h3 className="text-primary font-sora font-bold mb-1">
-                Read full article on {story.source}
+                Want to read more?
               </h3>
               <p className="text-sm text-secondary">
-                Support the original publisher by reading on their site.
+                Visit {story.source} to read the full article
               </p>
             </div>
             <a
               href={story.url || '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 bg-primary text-base font-semibold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 whitespace-nowrap">
-
-              Read Original <ExternalLink className="w-4 h-4" />
+              className="px-6 py-3 bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
+              Visit Site <ExternalLink className="w-4 h-4" />
             </a>
           </div>
         </div>

@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as cheerio from 'cheerio';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ db.exec(`
     time TEXT,
     image TEXT,
     url TEXT,
+    content TEXT,
     published_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_featured BOOLEAN DEFAULT 0,
@@ -540,11 +542,78 @@ app.get('/api/explore', (req, res) => {
   }
 });
 
+// Extract first N paragraphs from HTML content
+function extractParagraphs(html, count = 3) {
+  try {
+    const $ = cheerio.load(html);
+    const paragraphs = [];
+
+    // Try to find paragraphs in common article containers
+    const selectors = [
+      'article p',
+      '[class*="content"] p',
+      '[class*="body"] p',
+      '[class*="post"] p',
+      'main p',
+      'p'
+    ];
+
+    for (const selector of selectors) {
+      $(selector).each(function () {
+        if (paragraphs.length >= count) return false;
+        const text = $(this).text().trim();
+        if (text.length > 50) {
+          paragraphs.push(text);
+        }
+      });
+      if (paragraphs.length >= count) break;
+    }
+
+    return paragraphs.slice(0, count);
+  } catch (error) {
+    console.error('Error extracting paragraphs:', error);
+    return [];
+  }
+}
+
+// Get article content from URL
+async function fetchArticleContent(url) {
+  try {
+    const response = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; AI24-NewsBot/1.0)'
+      }
+    });
+
+    const paragraphs = extractParagraphs(response.data, 3);
+    return paragraphs.length > 0 ? paragraphs : null;
+  } catch (error) {
+    console.error(`Error fetching content from ${url}:`, error.message);
+    return null;
+  }
+}
+
 // Get single article by ID
-app.get('/api/article/:id', (req, res) => {
+app.get('/api/article/:id', async (req, res) => {
   try {
     const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
     if (article) {
+      // Try to fetch full content if not already cached
+      if (!article.content && article.url) {
+        const content = await fetchArticleContent(article.url);
+        if (content) {
+          // Cache the content in database
+          db.prepare('UPDATE articles SET content = ? WHERE id = ?').run(
+            JSON.stringify(content),
+            req.params.id
+          );
+          article.content = content;
+        }
+      } else if (article.content) {
+        article.content = JSON.parse(article.content);
+      }
+
       res.json(article);
     } else {
       res.status(404).json({ error: 'Article not found' });
@@ -603,14 +672,38 @@ app.get('/api/category/:category', (req, res) => {
   }
 });
 
-// Manually trigger news fetch (for testing)
+// Manually trigger news fetch (for testing / manual refresh)
 app.post('/api/fetch-news', async (req, res) => {
   try {
+    console.log('Manual news fetch triggered');
     const articles = await fetchAINews();
-    res.json({ success: true, count: articles.length });
+    const count = db.prepare('SELECT COUNT(*) as count FROM articles').get();
+    res.json({
+      success: true,
+      fetched: articles.length,
+      totalInDatabase: count.count
+    });
   } catch (error) {
     console.error('Error in manual fetch:', error);
     res.status(500).json({ error: 'Error fetching news' });
+  }
+});
+
+// Get database statistics
+app.get('/api/stats', (req, res) => {
+  try {
+    const articles = db.prepare('SELECT COUNT(*) as count FROM articles').get();
+    const oldestArticle = db.prepare('SELECT published_at FROM articles ORDER BY published_at ASC LIMIT 1').get();
+    const newestArticle = db.prepare('SELECT published_at FROM articles ORDER BY published_at DESC LIMIT 1').get();
+
+    res.json({
+      totalArticles: articles.count,
+      oldestArticle: oldestArticle?.published_at || null,
+      newestArticle: newestArticle?.published_at || null
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ error: 'Error fetching stats' });
   }
 });
 
@@ -773,10 +866,23 @@ app.post('/api/community/:id/upvote', (req, res) => {
   }
 });
 
-// Schedule news fetching every 24 hours
+// Schedule news fetching every 24 hours at midnight UTC
 cron.schedule('0 0 * * *', async () => {
   console.log('Running scheduled news fetch at', new Date().toISOString());
-  await fetchAINews();
+  try {
+    // Remove articles older than 7 days to prevent database bloat
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const deleted = db.prepare('DELETE FROM articles WHERE published_at < ?').run(sevenDaysAgo);
+    console.log(`Cleaned up ${deleted.changes} old articles`);
+
+    // Fetch new articles
+    await fetchAINews();
+
+    const count = db.prepare('SELECT COUNT(*) as count FROM articles').get();
+    console.log(`Database now has ${count.count} articles`);
+  } catch (error) {
+    console.error('Error in scheduled news fetch:', error.message);
+  }
 });
 
 // Initial setup on server start
@@ -858,13 +964,23 @@ async function initializeDatabase() {
 console.log('Initializing database...');
 await initializeDatabase();
 
-// Only fetch fresh articles if we don't have many
+// Check if we need fresh articles
 const articleCount = db.prepare('SELECT COUNT(*) as count FROM articles').get();
-if (articleCount.count < 10) {
-  console.log('Fetching fresh articles...');
+const newestArticle = db.prepare('SELECT published_at FROM articles ORDER BY published_at DESC LIMIT 1').get();
+
+// Fetch fresh articles if:
+// 1. Database is empty (less than 10 articles)
+// 2. OR newest article is older than 24 hours
+const needsFreshArticles = articleCount.count < 10;
+const lastArticleTime = newestArticle ? new Date(newestArticle.published_at).getTime() : 0;
+const hoursSinceLastArticle = (Date.now() - lastArticleTime) / (1000 * 60 * 60);
+const isStale = hoursSinceLastArticle > 24;
+
+if (needsFreshArticles || isStale) {
+  console.log(`Fetching fresh articles (count: ${articleCount.count}, hours since last: ${hoursSinceLastArticle.toFixed(1)})...`);
   await fetchAINews();
 } else {
-  console.log(`Database already has ${articleCount.count} articles, skipping fetch`);
+  console.log(`Database has ${articleCount.count} articles, newest from ${hoursSinceLastArticle.toFixed(1)} hours ago`);
 }
 
 app.listen(PORT, () => {

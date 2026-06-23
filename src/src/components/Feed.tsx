@@ -74,25 +74,11 @@ export function Feed({ stories: initialStories }: FeedProps) {
   };
   return (
     <section className="mt-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-border pb-4 gap-4">
-        <h2 className="text-xl font-sora font-bold flex items-center gap-2" style={{ color: '#f5f5f5' }}>
+      <div className="mb-6 border-b border-border pb-4">
+        <h2 className="text-xl font-sora font-bold flex items-center gap-2 text-primary">
           <div className="w-2 h-2 rounded-full bg-accent"></div>
           Latest News
         </h2>
-        <div className="flex items-center gap-4 text-sm text-secondary overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-          <button className="text-primary font-medium whitespace-nowrap">
-            All Stories
-          </button>
-          <button className="hover:text-primary transition-colors whitespace-nowrap">
-            AI Models
-          </button>
-          <button className="hover:text-primary transition-colors whitespace-nowrap">
-            Industry
-          </button>
-          <button className="hover:text-primary transition-colors whitespace-nowrap">
-            Hardware
-          </button>
-        </div>
       </div>
 
       <motion.div
@@ -106,8 +92,7 @@ export function Feed({ stories: initialStories }: FeedProps) {
           key={story.id}
           variants={item}
           whileHover={{
-            x: 4,
-            backgroundColor: '#1a1a1a'
+            x: 4
           }}
           onClick={() => navigate(`/story/${story.id}`)}
           className="group flex flex-col sm:flex-row gap-4 p-3 -mx-3 rounded-xl border border-transparent hover:border-border transition-all cursor-pointer relative">

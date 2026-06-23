@@ -8,13 +8,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        base: '#121212',
-        surface: '#1a1a1a',
-        border: '#2a2a2a',
-        primary: '#f5f5f5',
-        secondary: '#a3a3a3',
-        muted: '#6b6b6b',
-        accent: '#6366f1',
+        base: 'var(--color-base)',
+        surface: 'var(--color-surface)',
+        border: 'var(--color-border)',
+        primary: 'var(--color-primary)',
+        secondary: 'var(--color-secondary)',
+        muted: 'var(--color-muted)',
+        accent: 'var(--color-accent)',
       },
       fontFamily: {
         sora: ['Sora', 'sans-serif'],

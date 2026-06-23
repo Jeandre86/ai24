@@ -57,7 +57,7 @@ export function Picks() {
   if (loading) {
     return (
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center text-secondary">Loading AI//24 Picks...</div>
+        <div className="text-center text-secondary">Loading Mosaic Picks...</div>
       </main>
     );
   }
@@ -67,7 +67,7 @@ export function Picks() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <Star className="w-8 h-8 text-accent" fill="currentColor" />
-          AI//24 Picks
+          Mosaic Picks
         </h1>
         <p className="text-secondary">Our curated selection of the most impactful AI & tech stories</p>
       </div>

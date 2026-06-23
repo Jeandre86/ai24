@@ -1,0 +1,118 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    AI//24 — QUICK COMMANDS REFERENCE                      ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+🚀 START THE SYSTEM
+════════════════════════════════════════════════════════════════════════════
+
+FROM ANY DIRECTORY:
+  npm run dev:all
+
+OR from within the folder:
+  npm run dev:all
+
+THEN OPEN:
+  Frontend: http://localhost:5173
+  Backend:  http://localhost:3001
+
+════════════════════════════════════════════════════════════════════════════
+
+⏹️  STOP THE SYSTEM
+════════════════════════════════════════════════════════════════════════════
+
+  pkill -f "npm run dev:all"
+
+OR if that doesn't work:
+  pkill -f "vite"
+  pkill -f "node server.js"
+
+════════════════════════════════════════════════════════════════════════════
+
+📋 OTHER COMMANDS
+════════════════════════════════════════════════════════════════════════════
+
+Start only backend (Express on :3001):
+  npm run server
+
+Start only frontend (Vite on :5173):
+  npm run dev
+
+Build for production:
+  npm run build
+
+Preview production build:
+  npm run preview
+
+Lint code:
+  npm run lint
+
+════════════════════════════════════════════════════════════════════════════
+
+🔗 TEST API ENDPOINTS
+════════════════════════════════════════════════════════════════════════════
+
+Featured articles (3):
+  curl http://localhost:3001/api/featured
+
+Feed (6 latest):
+  curl http://localhost:3001/api/feed
+
+All articles (paginated):
+  curl http://localhost:3001/api/explore
+
+Category filter:
+  curl http://localhost:3001/api/category/Updates
+
+════════════════════════════════════════════════════════════════════════════
+
+🎨 WHAT YOU'LL SEE
+════════════════════════════════════════════════════════════════════════════
+
+✅ Header with:
+   - Logo + Navigation
+   - Search (Cmd/Ctrl+K)
+   - Sun/Moon icon (theme toggle) — NEW
+   - "Sign In" button — NEW
+
+✅ Dark theme (default)
+
+✅ Hero section (3 featured articles)
+
+✅ Feed section (6 latest articles)
+
+✅ Sidebar (trending, deep dives, picks)
+
+✅ Protected pages: /jobs, /advertise (require login)
+
+════════════════════════════════════════════════════════════════════════════
+
+🧪 QUICK TEST
+════════════════════════════════════════════════════════════════════════════
+
+1. Start: npm run dev:all
+2. Open: http://localhost:5173
+3. Click sun/moon icon → Page turns light/white ✓
+4. Click "Sign In" → LoginModal pops up ✓
+5. Visit http://localhost:5173/jobs → "Sign in to view AI Jobs" ✓
+6. Backend check: curl http://localhost:3001/api/featured ✓
+
+════════════════════════════════════════════════════════════════════════════
+
+📁 PROJECT LOCATION
+════════════════════════════════════════════════════════════════════════════
+
+/Users/cp366261capitecbank.co.za/Desktop/AI24/
+
+════════════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTATION
+════════════════════════════════════════════════════════════════════════════
+
+STARTUP_GUIDE.md          ← Complete setup guide
+AUTH_SETUP_GUIDE.md       ← Firebase configuration
+FRONTEND_CHANGES_LIVE.md  ← What's new in the UI
+
+════════════════════════════════════════════════════════════════════════════
+
+🚀 ALL SYSTEMS READY — START WITH: npm run dev:all
+════════════════════════════════════════════════════════════════════════════

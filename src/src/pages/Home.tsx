@@ -27,7 +27,7 @@ export function Home() {
         const picks = await picksRes.json();
 
         setHeroStories(featured);
-        setFeedStories(feed);
+        setFeedStories(feed && Array.isArray(feed) ? feed : []);
 
         // Trending Now: Top 5 most recent articles from explore
         const trendingData = explore.articles?.slice(0, 5).map(article => ({
@@ -46,11 +46,11 @@ export function Home() {
         })) || [];
         setDeepDives(deepDiveData);
 
-        // Curation Picks: Use AI//24 Picks data
+        // Curation Picks: Use Mosaic Picks data
         const curationData = picks.slice(0, 3).map(article => ({
           id: article.id,
           title: article.title,
-          curator: 'AI//24 Team'
+          curator: 'Mosaic Team'
         })) || [];
         setCurationPicks(curationData);
       } catch (error) {
